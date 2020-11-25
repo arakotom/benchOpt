@@ -29,18 +29,16 @@ class ParametrizedNameMixin():
     def __init__(self, **parameters):
         """Default init set parameters base on the cls.parameters
         """
-        parameters_ = next(product_param(self.parameters))
-        parameters_.update(parameters)
-        for k, v in parameters_.items():
-            if not hasattr(self, k):
-                setattr(self, k, v)
+        pass
 
     def save_parameters(self, **parameters):
-        self.parameters = parameters
+        _parameters = next(product_param(self.parameters))
+        _parameters.update(parameters)
+        self._parameters = _parameters
         if not hasattr(self, 'parameter_template'):
             self.parameter_template = ",".join(
-                [f"{k}={v}" for k, v in parameters.items()])
-        for k, v in parameters.items():
+                [f"{k}={v}" for k, v in _parameters.items()])
+        for k, v in _parameters.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
 
@@ -64,8 +62,8 @@ class ParametrizedNameMixin():
     def __repr__(self):
         """Compute the parametrized name of the instance."""
         out = f"{self.name}"
-        if len(self.parameters) > 0:
-            out += f"[{self.parameter_template}]".format(**self.parameters)
+        if len(self._parameters) > 0:
+            out += f"[{self.parameter_template}]".format(**self._parameters)
         return out
 
     @classmethod
@@ -287,7 +285,7 @@ class BaseSolver(ParametrizedNameMixin, DependenciesMixin, ABC):
     def __reduce__(self):
         module_hash = get_file_hash(self._module_filename)
         return self._reconstruct, (self._module_filename, module_hash,
-                                   self.parameters, self._objective)
+                                   self._parameters, self._objective)
 
 
 class CommandLineSolver(BaseSolver, ABC):
@@ -346,7 +344,7 @@ class BaseDataset(ParametrizedNameMixin, DependenciesMixin):
     def __reduce__(self):
         module_hash = get_file_hash(self._module_filename)
         return self._reconstruct, (self._module_filename, module_hash,
-                                   self.parameters)
+                                   self._parameters)
 
 
 class BaseObjective(ParametrizedNameMixin):
@@ -406,4 +404,4 @@ class BaseObjective(ParametrizedNameMixin):
     def __reduce__(self):
         module_hash = get_file_hash(self._module_filename)
         return self._reconstruct, (self._module_filename, module_hash,
-                                   self.parameters, self.dataset)
+                                   self._parameters, self.dataset)
