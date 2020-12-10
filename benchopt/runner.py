@@ -30,6 +30,7 @@ RAISE_INSTALL_ERROR = get_global_setting('raise_install_error')
 PATIENCE = 5
 MAX_ITER = int(1e6)
 MIN_TOL = 1e-15
+LINE_LENGTH = 80
 
 
 ##################################
@@ -123,7 +124,7 @@ def run_one_stop_val(benchmark, objective, solver, meta, stop_val,
     for rep in range(n_repetitions):
         if progress_str is not None:
             msg = f"{progress_str} ({rep} / {n_repetitions} repetitions)"
-            print(f"{msg.ljust(60)}\r", end='', flush=True)
+            print(f"{msg.ljust(LINE_LENGTH)}\r", end='', flush=True)
 
         meta_rep = dict(**meta, idx_rep=rep)
 
@@ -210,7 +211,7 @@ def run_one_solver(benchmark, objective, solver, meta, max_runs, n_repetitions,
     # check if the module caught a failed import
     if not solver.is_installed(raise_on_not_installed=RAISE_INSTALL_ERROR):
         status = colorify("failed import", RED)
-        print(f"{tag} {status}".ljust(80))
+        print(f"{tag} {status}".ljust(LINE_LENGTH))
         return curve
 
     id_stop_val = 0
@@ -222,10 +223,14 @@ def run_one_solver(benchmark, objective, solver, meta, max_runs, n_repetitions,
 
     with exception_handler(tag, pdb=pdb):
         for id_stop_val in range(max_runs):
-            if (np.max(delta_objectives) < eps):
+            if (-eps <= np.max(delta_objectives) < eps):
                 # We are on a plateau and the objective is not improving
                 # stop here for the stop_val
                 status = colorify('done', GREEN)
+                break
+            if np.max(delta_objectives) < -1e10:
+                # The algorithm is diverging, stopping here
+                status = colorify('diverged', RED)
                 break
 
             p = progress(id_stop_val, np.max(delta_objectives))
@@ -263,12 +268,12 @@ def run_one_solver(benchmark, objective, solver, meta, max_runs, n_repetitions,
             stop_val = get_next(stop_val)
         else:
             status = colorify("done (did not converge)", YELLOW)
+
+        print(f"{tag} {status}".ljust(LINE_LENGTH))
         if DEBUG:
             delta = np.max(delta_objectives)
-            print(f"{tag} DEBUG - Exit with delta_objective = {delta:.2e} "
+            print(f"DEBUG - Exit with delta_objective = {delta:.2e} "
                   f"and stop_val={stop_val:.1e}.")
-        else:
-            print(f"{tag} {status}".ljust(80))
 
     return curve
 
